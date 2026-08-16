@@ -89,6 +89,7 @@ describe('connection client apply', () => {
       onStreamEvent: () => () => {},
       abort: () => {},
       loadBundle: async () => '',
+      download: async () => {},
     }
     ;(globalThis as { dshDesktop?: DesktopBridge }).dshDesktop = bridge
     ;(globalThis as Win).location = { hostname: '', search: '' }
