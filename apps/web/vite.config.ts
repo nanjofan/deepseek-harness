@@ -4,6 +4,8 @@ import type { Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
+/** Desktop build variant: relative asset base for file:// loading into a separate dist. */
+const desktopBuild = process.env.DSH_DESKTOP_BUILD === '1'
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
   + 'From a repository checkout, run `pnpm dsh web`; an installed package uses `dsh web`. '
   + 'For client-plugin HMR, run `pnpm dsh web` together with `pnpm run dev:web`.'
@@ -91,7 +93,9 @@ function npmPackageOf(id: string): string | undefined {
 
 export default defineConfig({
   plugins: [rejectStandaloneServe(), react()],
+  base: desktopBuild ? './' : '/',
   build: {
+    outDir: desktopBuild ? 'dist-desktop' : 'dist',
     sourcemap: true,
     rollupOptions: {
       output: {

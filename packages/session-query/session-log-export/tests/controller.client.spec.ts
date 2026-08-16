@@ -113,6 +113,28 @@ describe('SessionLogDownloadController', () => {
     expect(click).toHaveBeenCalledOnce()
   })
 
+  it('routes the HEAD probe and native save through the Electron bridge', async () => {
+    const bridgeFetch = vi.fn(async () => ({
+      status: 200, statusText: 'OK', headers: {}, body: '',
+    }))
+    const bridgeDownload = vi.fn(async () => undefined)
+    vi.stubGlobal('dshDesktop', { fetch: bridgeFetch, download: bridgeDownload })
+    const controller = new SessionLogDownloadController()
+
+    await controller.download(SID)
+
+    const [request] = bridgeFetch.mock.calls[0] as unknown as [Record<string, unknown>]
+    expect(request.method).toBe('HEAD')
+    expect(String(request.url)).toContain('/api/session.export')
+    expect(bridgeDownload).toHaveBeenCalledWith(
+      expect.stringContaining('/api/session.export'),
+      'dsh-session-session-export-controller.zip',
+    )
+    expect(controller.store.getSnapshot().bySession[SID]).toEqual({
+      open: true, status: 'success', error: null,
+    })
+  })
+
   it('defaults dialog openness when state is externally cleared before settlement', async () => {
     const success = Promise.withResolvers<Response>()
     const successful = new SessionLogDownloadController(() => success.promise, vi.fn())

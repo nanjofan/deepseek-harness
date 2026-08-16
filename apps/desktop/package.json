@@ -1,0 +1,36 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "Electron desktop shell for DeepSeek Harness: boots the dsh desktop profile and serves the web GUI over an IPC bridge",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "author": "DeepSeek Harness Desktop",
+  "type": "module",
+  "main": "lib/main.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=lib/preload.cjs",
+    "dev": "pnpm run build && electron .",
+    "pack": "pnpm run build && electron-builder --dir",
+    "dist": "pnpm run build && electron-builder"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-app-boot": "workspace:^",
+    "@deepseek-ai/dsh-base": "workspace:^",
+    "@deepseek-ai/dsh-cmdline": "workspace:^",
+    "@deepseek-ai/dsh": "workspace:^",
+    "@deepseek-ai/dsh-desktop-app": "workspace:^",
+    "@deepseek-ai/dsh-host-apiproxy": "workspace:^",
+    "@deepseek-ai/dsh-home-paths": "workspace:^",
+    "@deepseek-ai/dsh-launch-environment": "workspace:^",
+    "@deepseek-ai/dsh-web-app": "workspace:^",
+    "@deepseek-ai/dsh-web-frontend": "workspace:^",
+    "@deepseek-ai/cordis": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,56 @@
+# The dsh-desktop-app bundle patch: the Electron surface over dsh-base and
+# dsh-web-app. The web-app layer still contributes the shared browser roster;
+# this layer disables the HTTP/WebSocket carriers and mounts the desktop
+# runtime glue, whose IPC bridge the Electron main process consumes.
+#
+# A patch replaces the targeted row's whole config (and any other field named
+# here), so each row below restates every value it needs to differ.
+
+# The web app's command-line provider owns the `dsh web` flag family and is
+# inert on the desktop surface.
+- id: web-startup
+  disabled: true
+
+# Electron never reuses the HTTP server: the renderer loads dist over file://
+# and every RPC rides the in-process IPC bridge.
+- id: webserver
+  disabled: true
+
+# The web runtime glue owns dist serving, URL printing, and LAN trust on the
+# webserver; the desktop shell owns the window and readiness instead.
+- id: web-runtime
+  disabled: true
+
+# The client-plugin HMR chain needs the webserver's bundle routes; a packaged
+# desktop app rebuilds and relaunches instead.
+- id: client-hmr
+  disabled: true
+
+# The adaptive directory picker resolves bind-host facts from the webserver.
+# The desktop composition pins the in-app browse interaction instead; an
+# Electron dialog-backed native provider can replace it later behind the same
+# seam. A patch `name` is a validation guard, not an override, so the auto row
+# is disabled and the browse pair is inserted under fresh ids.
+- id: directory-picker
+  disabled: true
+
+- insert:
+    - id: directory-picker-browse
+      name: '@deepseek-ai/dsh-host-directory-picker-browse'
+
+    - id: directory-picker-surface
+      name: '@deepseek-ai/dsh-client-ui-directory-picker-browse'
+
+    # The desktop runtime glue: provides ctx.desktopRuntime (boot graph, API
+    # fetch, bundle reads, and the two event streams) for the Electron main
+    # process's IPC handlers.
+    - id: desktop-runtime
+      name: '@deepseek-ai/dsh-desktop-app'
+
+# The web connection row injects webRuntime for LAN trust. The desktop IPC
+# carrier is same-process and renderer-trusted, so it needs no fence
+# authorities; the node half also skips its HTTP route registration.
+- id: connection
+  inject: []
+  config:
+    trustedHosts: []

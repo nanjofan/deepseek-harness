@@ -101,6 +101,9 @@
     },
     {
       "path": "../../packages/client/modules"
+    },
+    {
+      "path": "../../packages/client/connection/tsconfig.client.json"
     }
   ]
 }

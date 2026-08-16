@@ -149,4 +149,21 @@ describe('client bundle activation', () => {
     })
     expect(body).toBe(map)
   })
+
+  it('composes the graph without a webserver (the desktop composition) and skips route registration', () => {
+    const packageName = '@fixture/desktop-only'
+    const clientPath = writePackage(packageName)
+    mkdirSync(dirname(clientPath), { recursive: true })
+    writeFileSync(clientPath, 'module.exports = {}\n')
+    const ctx = new Context()
+    ctx.baseUrl = pathToFileURL(root!).href + '/'
+    ctx.provide('loader', {
+      *entries() {
+        yield { options: { name: packageName }, fiber: {}, disabled: false }
+      },
+    })
+    const service = new ClientModuleRegistry(ctx)
+    expect(service.graph().entries.map(entry => entry.id)).toEqual([packageName])
+    expect(service.clientPath(packageName)).toBe(clientPath)
+  })
 })

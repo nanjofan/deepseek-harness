@@ -13,14 +13,17 @@
   "type": "module",
   "exports": {
     "./dist/*": "./dist/*",
+    "./dist-desktop/*": "./dist-desktop/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist",
+    "dist-desktop",
     "!dist/**/*.map"
   ],
   "scripts": {
     "build": "vite build",
+    "build:desktop": "DSH_DESKTOP_BUILD=1 vite build",
     "dev": "vite",
     "watch": "vite build --watch"
   },

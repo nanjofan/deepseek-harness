@@ -8,7 +8,8 @@ import type { HostDescription, IApiClient } from './api.ts'
 import { ConnectionController, type ConnectionConfig, type ConnectionSinks, type ConnectionState } from './connection.ts'
 import { FixtureApiClient } from './fixture.ts'
 import { WebApiClient } from './web-api-client.ts'
-import { createWebConnectionRpc } from './rpc.ts'
+import { DesktopApiClient, type DesktopBridge } from './desktop.ts'
+import { createDesktopConnectionRpc, createWebConnectionRpc } from './rpc.ts'
 import { isLoopbackHostname } from '../loopback-hostname.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 
@@ -35,6 +36,11 @@ export {
   AbstractApiClient,
   transportError,
 } from './api.ts'
+export { DesktopApiClient } from './desktop.ts'
+export type {
+  DesktopBridge, DesktopFetchRequest, DesktopFetchResponse, DesktopStreamEvent,
+} from './desktop.ts'
+export { createDesktopConnectionRpc, createWebConnectionRpc } from './rpc.ts'
 
 // Connection loop types are public through ConnectionHandle.start; the
 // controller remains package-internal.
@@ -85,8 +91,11 @@ export function apply(ctx: Context): void {
   const pageLocation = typeof location === 'undefined' ? undefined : location
   const fixture = pageLocation !== undefined && new URLSearchParams(pageLocation.search).has('fixture')
   const fixtureClient = fixture ? new FixtureApiClient() : undefined
-  const api: IApiClient = fixtureClient ?? new WebApiClient()
-  const rpc = fixtureClient?.rpc ?? createWebConnectionRpc()
+  const desktop = (globalThis as { dshDesktop?: DesktopBridge }).dshDesktop
+  const api: IApiClient = fixtureClient
+    ?? (desktop === undefined ? new WebApiClient() : new DesktopApiClient(desktop))
+  const rpc = fixtureClient?.rpc
+    ?? (desktop === undefined ? createWebConnectionRpc() : createDesktopConnectionRpc(desktop))
   let started = false
   let description: HostDescription | undefined
   const descriptionListeners = new Set<() => void>()
@@ -103,7 +112,9 @@ export function apply(ctx: Context): void {
   }
   const handle: ConnectionHandle = {
     api,
-    isLoopback: pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
+    isLoopback: desktop !== undefined
+      || pageLocation === undefined
+      || isLoopbackHostname(pageLocation.hostname),
     hostDescription: {
       getSnapshot: () => description,
       subscribe: (listener) => {

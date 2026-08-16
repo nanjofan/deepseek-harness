@@ -1,4 +1,9 @@
-/** Host HTTP bridge for browser-client RPC. */
+/**
+ * Host HTTP bridge for browser-client RPC. The bridge mounts only when the
+ * composition carries a webserver; the desktop composition keeps this entry
+ * alive for its `dsh.client` roster while the Electron shell serves the same
+ * API gateway over an IPC carrier instead.
+ */
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-attachment'
@@ -43,8 +48,11 @@ function assertImageBodyCapacity(ctx: Context, maxRequestBodyBytes: number): voi
   }
 }
 
-/** Services required before providing Connection; API Proxy is an optional `/api` fallback. */
-export const inject = ['webServer']
+/**
+ * Services required before providing Connection; the webserver is optional so
+ * a desktop composition can keep the browser plugin roster without HTTP.
+ */
+export const inject: string[] = []
 
 /** Plugin config: the deployment's non-loopback serving authorities. */
 export interface ConnectionConfig {
@@ -128,6 +136,8 @@ const PRIVILEGED_METHODS = new Set([
  * @param config - resolved plugin config (schema defaults applied).
  */
 export function apply(ctx: Context, config?: ConnectionConfig): void {
+  const webServer = ctx.get('webServer')
+  if (webServer === undefined) return
   // The Loader resolves schema defaults; hand-built test contexts may pass none.
   const trustedHosts = config?.trustedHosts ?? []
   const maxRequestBodyBytes = config?.maxRequestBodyBytes ?? DEFAULT_MAX_REQUEST_BODY_BYTES
@@ -170,7 +180,7 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
       await bridge(req, res, fetchHandler, maxRequestBodyBytes)
     },
   }
-  ctx.effect(() => ctx.webServer.register(route), 'client-connection: /api route')
+  ctx.effect(() => webServer.register(route), 'client-connection: /api route')
   ctx.inject(['apiProxy'], (apiCtx) => {
     assertImageBodyCapacity(apiCtx, maxRequestBodyBytes)
     const downlinks = new WebSocketDownlinks(apiCtx.apiProxy)

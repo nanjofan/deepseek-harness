@@ -8,6 +8,10 @@
  * face).
  *
  * Scanning is incremental per package — there is no full-rescan code path.
+ * The webserver is optional: a desktop composition mounts this node half for
+ * graph composition and bundle reads while the Electron shell serves bundles
+ * over IPC; without a webserver the route and index-tap registrations are
+ * skipped.
  * Every cordis `internal/plugin` emission (fiber construction/disposal) marks
  * the fiber's entry name dirty; a microtask flush reconciles each dirty name
  * against the live loader entries. The activation pass seeds the same dirty
@@ -182,7 +186,7 @@ export function injectBootManifest(html: string, graph: WebBootGraph): string {
  * boot activation audit reports it).
  */
 export class ClientModuleRegistry extends Service {
-  static inject = ['webServer', 'loader']
+  static inject = ['loader']
 
   private readonly table = new Map<string, WebPluginRecord>()
   // Negative verdicts (unresolvable specifier — builtins like cordis:include,
@@ -238,14 +242,17 @@ export class ClientModuleRegistry extends Service {
       throw new ClientPackageCompositionError(failures)
     }
 
-    ctx.effect(
-      () => ctx.webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
-      'client-modules: bundle route',
-    )
-    ctx.effect(
-      () => ctx.webServer.tapIndex(html => injectBootManifest(html, this.composed)),
-      'client-modules: boot manifest injection',
-    )
+    const webServer = ctx.get('webServer')
+    if (webServer !== undefined) {
+      ctx.effect(
+        () => webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
+        'client-modules: bundle route',
+      )
+      ctx.effect(
+        () => webServer.tapIndex(html => injectBootManifest(html, this.composed)),
+        'client-modules: boot manifest injection',
+      )
+    }
   }
 
   /**

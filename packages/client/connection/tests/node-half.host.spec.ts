@@ -90,6 +90,14 @@ async function mounted(config?: { trustedHosts?: string[] }): Promise<{
 }
 
 describe('connection node half', () => {
+  it('stays inert without a webserver so the desktop roster keeps the entry alive', async () => {
+    const ctx = new Context()
+    const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: [] })
+    await fiber.await()
+    expect(ctx.get('connection')).toBeUndefined()
+    await fiber.dispose()
+  })
+
   it('fails loud when the carrier cap cannot hold the configured image batch', () => {
     const ctx = new Context()
     const routes: WebRoute[] = []

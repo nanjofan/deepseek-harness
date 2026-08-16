@@ -18,7 +18,52 @@ export interface SessionLogDownloadState {
 }
 
 type Fetch = (input: string | URL, init?: RequestInit) => Promise<Response>
-type Save = (url: string, filename: string) => void
+type Save = (url: string, filename: string) => void | Promise<void>
+
+/** Electron preload bridge surface the download controller adapts to. */
+interface DesktopDownloadBridge {
+  fetch(request: {
+    requestId: string
+    url: string
+    method: string
+    headers: Record<string, string>
+    body?: string
+  }): Promise<{ status: number; statusText: string; headers: Record<string, string>; body: string }>
+  download(url: string, filename: string): Promise<void>
+}
+
+function desktopBridge(): DesktopDownloadBridge | undefined {
+  return (globalThis as { dshDesktop?: DesktopDownloadBridge }).dshDesktop
+}
+
+/** Serialize a browser fetch call through the Electron IPC bridge. */
+function desktopFetch(input: string | URL, init?: RequestInit): Promise<Response> {
+  const bridge = desktopBridge()
+  if (bridge === undefined) return fetch(input, init)
+  const url = typeof input === 'string' ? new URL(input, hostBase()) : input
+  const headers = new Headers(init?.headers)
+  return bridge.fetch({
+    requestId: `dsh-download-${Math.random().toString(36).slice(2)}`,
+    url: url.toString(),
+    method: init?.method ?? 'GET',
+    headers: Object.fromEntries(headers.entries()),
+    ...typeof init?.body === 'string' ? { body: init.body } : {},
+  }).then(response => new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  }))
+}
+
+/** Default save: the browser download manager, or the Electron main process dialog. */
+function defaultSave(url: string, filename: string): void | Promise<void> {
+  const bridge = desktopBridge()
+  if (bridge !== undefined) {
+    void bridge.download(url, filename)
+    return
+  }
+  downloadUrl(url, filename)
+}
 
 const INITIAL: SessionLogDownloadState = { bySession: {} }
 
@@ -66,8 +111,8 @@ export class SessionLogDownloadController {
    * @param save - browser save operation.
    */
   constructor(
-    private readonly fetcher: Fetch = (input, init) => fetch(input, init),
-    private readonly save: Save = downloadUrl,
+    private readonly fetcher: Fetch = desktopFetch,
+    private readonly save: Save = defaultSave,
   ) {}
 
   /**

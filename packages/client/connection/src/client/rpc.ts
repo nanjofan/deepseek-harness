@@ -6,6 +6,7 @@ import {
   type ClientRequest,
 } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ClientConnectionRpc } from '../rpc.ts'
+import { bridgeFetch, type DesktopBridge } from './desktop.ts'
 import { randomUuid } from './random-uuid.ts'
 
 const INTERNAL_BASE = 'http://dsh.internal'
@@ -48,10 +49,52 @@ export function createWebConnectionRpc(): ClientConnectionRpc {
   }
 }
 
+/**
+ * Create the desktop-backed generic RPC caller. Same correlation and envelope
+ * validation as the web caller, with the transport swapped for the IPC bridge.
+ * @param bridge - the preload-exposed desktop transport.
+ * @returns caller that owns request correlation and response-envelope validation.
+ */
+export function createDesktopConnectionRpc(bridge: DesktopBridge): ClientConnectionRpc {
+  return {
+    async call(channel, endpoint, payload, signal) {
+      assertTarget(channel, endpoint)
+      const rpcId = RpcId(randomUuid())
+      const message: ClientRequest = {
+        type: 'client-request',
+        rpcId,
+        method: endpoint,
+        payload,
+      }
+      const response = await bridgeFetch(
+        bridge,
+        new URL(`${channel}/${endpoint}`, DESKTOP_BASE),
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(message),
+          ...signal === undefined ? {} : { signal },
+        },
+      )
+      if (!response.ok) {
+        throw new Error(`transport failure for ${channel}/${endpoint}: HTTP ${response.status}`)
+      }
+      const full = serverResponseSchema.parse(await response.json())
+      if (full.rpcId !== rpcId) {
+        throw new Error(`rpcId mismatch for ${endpoint}: sent ${rpcId}, got ${full.rpcId}`)
+      }
+      return full.result
+    },
+  }
+}
+
 function resolveBase(): string {
   const location = (globalThis as { location?: { origin?: string } }).location
   return location?.origin !== undefined && location.origin !== 'null' ? location.origin : INTERNAL_BASE
 }
+
+/** Synthetic authority for desktop IPC (the main process routes on pathname only). */
+const DESKTOP_BASE = 'http://dsh.desktop'
 
 function assertTarget(channel: string, endpoint: string): void {
   const segments = endpoint.split('/')

@@ -9,6 +9,7 @@ import type { RpcMessage } from '../src/client/api.ts'
 import { RpcId } from '../src/client/api.ts'
 import { FixtureApiClient } from '../src/client/fixture.ts'
 import { WebApiClient } from '../src/client/web-api-client.ts'
+import { DesktopApiClient, type DesktopBridge } from '../src/client/desktop.ts'
 
 type Win = { location?: { hostname: string; search: string; origin?: string } }
 type WebSocketGlobal = { WebSocket?: typeof WebSocket }
@@ -49,6 +50,7 @@ class FakeWebSocket extends EventTarget {
 
 afterEach(() => {
   delete (globalThis as Win).location
+  delete (globalThis as { dshDesktop?: DesktopBridge }).dshDesktop
   sockets.length = 0
   if (originalWebSocket === undefined) delete (globalThis as WebSocketGlobal).WebSocket
   else globalThis.WebSocket = originalWebSocket
@@ -76,6 +78,22 @@ describe('connection client apply', () => {
     delete (globalThis as Win).location
     const handle = await mount()
     expect(handle.api).toBeInstanceOf(WebApiClient)
+    expect(handle.isLoopback).toBe(true)
+  })
+
+  it('selects the desktop client when the Electron preload bridge is present', async () => {
+    const bridge: DesktopBridge = {
+      fetch: async () => ({ status: 200, statusText: 'OK', headers: {}, body: '' }),
+      openStream: async () => 's',
+      closeStream: async () => {},
+      onStreamEvent: () => () => {},
+      abort: () => {},
+      loadBundle: async () => '',
+    }
+    ;(globalThis as { dshDesktop?: DesktopBridge }).dshDesktop = bridge
+    ;(globalThis as Win).location = { hostname: '', search: '' }
+    const handle = await mount()
+    expect(handle.api).toBeInstanceOf(DesktopApiClient)
     expect(handle.isLoopback).toBe(true)
   })
 
