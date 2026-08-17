@@ -10,7 +10,7 @@ English | [中文](2026-08-17-desktop-linux-executable-name.zh.md)
 
 ## Decision
 
-The `linux` section sets `executableName: dsh-desktop`, `packageName: dsh-desktop`, and `artifactName: dsh-desktop-${version}-${arch}.${ext}`, so AppImage and deb get filename-safe package and artifact names; it also keeps `maintainer: DeepSeek Harness` for the deb control record. `apps/desktop/package.json` gains the standard workspace `repository` block so electron-builder can derive the package homepage. The desktop-build workflow passes `--publish never` to electron-builder because the workflow uploads artifacts with `actions/upload-artifact` instead of publishing a release. The app display name stays `productName: DeepSeek Harness`.
+The `linux` section sets `executableName: dsh-desktop` and `artifactName: dsh-desktop-${version}-${arch}.${ext}`, so AppImage and deb get filename-safe executable and artifact names; a top-level `deb` section sets `packageName: dsh-desktop` for the control record, and `maintainer: DeepSeek Harness` stays on `linux`. `apps/desktop/package.json` gains the standard workspace `repository` block so electron-builder can derive the package homepage. The desktop-build workflow passes `--publish never` to electron-builder because the workflow uploads artifacts with `actions/upload-artifact` instead of publishing a release. The app display name stays `productName: DeepSeek Harness`.
 
 ## Alternatives considered
 

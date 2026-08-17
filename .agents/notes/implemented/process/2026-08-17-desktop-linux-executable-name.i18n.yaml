@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-17-desktop-linux-executable-name.md
-2026-08-17-desktop-linux-executable-name.md: e643017c316807b1c4922b37f23010d356cc1646
-2026-08-17-desktop-linux-executable-name.zh.md: b4342467b07a9416991e818eefc33336ca7321b2
+2026-08-17-desktop-linux-executable-name.md: 8ba811e2dfcfda9849f3a7457cceaaeef78988d4
+2026-08-17-desktop-linux-executable-name.zh.md: 70a40417419538735fb49a039523cb0c47b947a1

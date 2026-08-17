@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-`linux` 段设置 `executableName: dsh-desktop`、`packageName: dsh-desktop` 与 `artifactName: dsh-desktop-${version}-${arch}.${ext}`,让 AppImage 与 deb 获得文件名安全的包名与 artifact 名;同时保留 `maintainer: DeepSeek Harness` 供 deb 控制记录使用。`apps/desktop/package.json` 补充了与 workspace 一致的 `repository` 块,使 electron-builder 能推导包主页。desktop-build workflow 给 electron-builder 传 `--publish never`,因为该 workflow 用 `actions/upload-artifact` 上传产物,并不发布 release。应用显示名仍为 `productName: DeepSeek Harness`。
+`linux` 段设置 `executableName: dsh-desktop` 与 `artifactName: dsh-desktop-${version}-${arch}.${ext}`,让 AppImage 与 deb 获得文件名安全的可执行文件名与 artifact 名;顶层 `deb` 段设置 `packageName: dsh-desktop` 供控制记录使用,`maintainer: DeepSeek Harness` 保留在 `linux` 段。`apps/desktop/package.json` 补充了与 workspace 一致的 `repository` 块,使 electron-builder 能推导包主页。desktop-build workflow 给 electron-builder 传 `--publish never`,因为该 workflow 用 `actions/upload-artifact` 上传产物,并不发布 release。应用显示名仍为 `productName: DeepSeek Harness`。
 
 ## Alternatives considered
 

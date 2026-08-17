@@ -26,7 +26,6 @@ win:
 linux:
   executableName: dsh-desktop
   maintainer: DeepSeek Harness
-  packageName: dsh-desktop
   artifactName: dsh-desktop-${version}-${arch}.${ext}
   category: Development
   target:
@@ -38,4 +37,6 @@ linux:
       arch:
         - x64
         - arm64
+deb:
+  packageName: dsh-desktop
 npmRebuild: true
