@@ -55,6 +55,7 @@ jobs:
       # producer would silently starve their restore-only optimization.
       - name: Configure pnpm store path
         id: pnpm-store
+        shell: bash
         run: |
           store_root="$HOME/.local/share/pnpm/store"
           echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
@@ -111,13 +112,23 @@ jobs:
 
       - name: Package installers
         working-directory: apps/desktop
+        # GitHub Actions injects unset secrets as empty strings. electron-builder's
+        # getCscLink deliberately treats "" as a real certificate link and then
+        # resolves it against the project dir, failing with "<projectDir> not a file"
+        # (codeSign/codesign.js importCertificate). Drop empty signing envs so an
+        # unset certificate falls back to identity auto-discovery (unsigned output)
+        # instead of the broken empty-string path.
+        shell: bash
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm exec electron-builder --${{ matrix.platform }} --x64 --arm64 --publish never
+        run: |
+          [ -n "$CSC_LINK" ] || unset CSC_LINK
+          [ -n "$CSC_KEY_PASSWORD" ] || unset CSC_KEY_PASSWORD
+          pnpm exec electron-builder --${{ matrix.platform }} --x64 --arm64 --publish never
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
