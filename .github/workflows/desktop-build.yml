@@ -48,7 +48,7 @@ jobs:
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
           ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
-        run: npx electron-builder --${{ matrix.platform }} --x64 --arm64
+        run: npx electron-builder --${{ matrix.platform }} --x64 --arm64 --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
