@@ -18,11 +18,19 @@ mac:
         - x64
         - arm64
 win:
+  artifactName: dsh-desktop-${version}-${arch}-setup.${ext}
   target:
     - target: nsis
       arch:
         - x64
         - arm64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: DeepSeek Harness
 linux:
   executableName: dsh-desktop
   maintainer: DeepSeek Harness

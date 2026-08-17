@@ -42,7 +42,11 @@ pnpm run desktop:dist
 | Windows | nsis | x64、arm64 |
 | Linux | AppImage、deb | x64、arm64 |
 
+Windows 的 NSIS 目标是带安装向导的安装程序，可选择安装目录并创建开始菜单/桌面快捷方式，不是免安装的绿色版。
+
 macOS 目标必须在 macOS 上构建。Windows 与 Linux 目标在工具链允许时可以从 macOS 交叉构建；原生模块（`node-pty`、`koffi` 等）由 electron-builder 按 Electron ABI 重新构建（`npmRebuild: true`），因此 arm64/Windows 交叉构建最好交给匹配的 CI runner。
+
+macOS 产物只有在使用 Developer ID Application 证书签名并完成公证后，才能在其他 Mac 上不经 Gatekeeper 变通直接打开。electron-builder 从环境读取 `CSC_LINK`/`CSC_KEY_PASSWORD` 以及 `APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID`（或 App Store Connect API key 变量）；未签名构建只能通过 Control 点击打开，或先执行 `xattr -dr com.apple.quarantine`。
 
 ## 已知限制
 

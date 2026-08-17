@@ -42,7 +42,11 @@ Targets and architectures:
 | Windows | nsis | x64, arm64 |
 | Linux | AppImage, deb | x64, arm64 |
 
+The Windows NSIS target is an assisted installer with a wizard, install-directory selection, and start-menu/desktop shortcuts; it is not a portable or unpacked app.
+
 macOS targets must be built on macOS. Windows and Linux targets can be cross-built from macOS when the toolchain permits; native modules (`node-pty`, `koffi`, ...) are rebuilt for the Electron ABI by electron-builder (`npmRebuild: true`), so arm64/Windows cross-builds are best produced on a matching CI runner.
+
+Mac artifacts open on other machines without Gatekeeper workarounds only when signed with a Developer ID Application certificate and notarized. electron-builder reads `CSC_LINK`/`CSC_KEY_PASSWORD` plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` (or App Store Connect API-key variables) from the environment; without them the build is unsigned and must be opened via Control-click or `xattr -dr com.apple.quarantine`.
 
 ## Known Limitations
 
