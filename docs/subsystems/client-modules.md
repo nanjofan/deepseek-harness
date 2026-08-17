@@ -62,6 +62,8 @@ Package metadata — including the negative "not a client package" verdict — i
 
 In development, [dsh-client-hmr](../../packages/client/hmr/README.md) is the registry's watch driver: its node half stat-polls every graph row's bundle from a synchronously captured baseline, calls `rebuilt(id)` on change, resyncs its watch set through `onGraphChanged`, and broadcasts rev changes to the browser half over SSE. Production graphs omit the HMR row entirely; the module host itself never watches files.
 
+The Electron desktop shell reuses the same graph table through `ctx.desktopRuntime` (`DesktopRuntime`): the composed graph, an in-process API fetch handler over the shared gateway, bundle source reads, and the mux/host event streams. See the [desktop bundle README](../../packages/bundle/desktop-app/README.md) for the composition.
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -114,5 +116,39 @@ onRebuilt(listener: (id: string, rev: string) => void): () => void
 onGraphChanged(listener: () => void): () => void
 ```
 
-Source: [`packages/client/modules/src/index.ts:184`](../../packages/client/modules/src/index.ts)
+Source: [`packages/client/modules/src/index.ts:188`](../../packages/client/modules/src/index.ts)
+
+<a id="ctxdesktopruntime--desktopruntime"></a>
+
+### `ctx.desktopRuntime` — `DesktopRuntime`
+
+The host face the Electron shell wires to IPC.
+
+```ts cordis-catalog
+/** Current composed `window.__DSH_BOOT__` entry graph.
+ * @returns the composed entry graph passed to the renderer boot. */
+graph(): WebBootGraph
+
+/** One in-process API request through the shared gateway fetch handler.
+ * @param request - the browser-facing fetch request to relay into the API gateway.
+ * @returns the gateway response after the in-process fetch handler. */
+fetch(request: Request): Promise<Response>
+
+/** JavaScript source of one client bundle by graph id.
+ * @param id - the client bundle graph id.
+ * @returns the bundle's JavaScript source text. */
+readBundle(id: string): Promise<string>
+
+/** The all-session mux frame stream.
+ * @param signal - cancels the event stream.
+ * @returns the mux frame stream as an async iterable. */
+mux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>>
+
+/** The host-level frame stream.
+ * @param signal - cancels the event stream.
+ * @returns the host frame stream as an async iterable. */
+host(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>>
+```
+
+Source: [`packages/bundle/desktop-app/src/index.ts:28`](../../packages/bundle/desktop-app/src/index.ts)
 <!-- END GENERATED cordis-surface -->

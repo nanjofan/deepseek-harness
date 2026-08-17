@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "build": "vite build",
-    "build:desktop": "DSH_DESKTOP_BUILD=1 vite build",
+    "build:desktop": "vite build --mode desktop",
     "dev": "vite",
     "watch": "vite build --watch"
   },

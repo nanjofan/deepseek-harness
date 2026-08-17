@@ -39,6 +39,10 @@ The whole harness core is Node.js + Cordis plugins (including native packages su
 - The frontend builds a second dist (`dist-desktop`) with a relative Vite base so `file://` asset URLs resolve; `dsh web` keeps the server-relative dist.
 - `electron-builder.yml` targets dmg/zip (macOS), nsis (Windows), AppImage/deb (Linux), each x64 and arm64.
 
+## Alternatives considered
+
+**Tauri and Wails were rejected in favor of Electron.** Both would require a packaged Node sidecar plus a custom main-process bridge, duplicating the transport work and giving up Electron's in-process Node core (see the Decision section).
+
 ## Consequences
 
 - The desktop app opens no HTTP port: the RCE-grade `/api` face exists only behind the app-owned IPC handler, which rejects any path outside `/api`.

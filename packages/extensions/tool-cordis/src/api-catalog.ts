@@ -526,6 +526,43 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'desktopRuntime',
+    summary: 'The host face the Electron shell wires to IPC.',
+    description: 'The host face the Electron shell wires to IPC.',
+    methods: [
+      {
+        signature: 'graph(): WebBootGraph',
+        description: 'Current composed `window.__DSH_BOOT__` entry graph.',
+        parameters: [],
+        returns: 'the composed entry graph passed to the renderer boot.',
+      },
+      {
+        signature: 'fetch(request: Request): Promise<Response>',
+        description: 'One in-process API request through the shared gateway fetch handler.',
+        parameters: [{ name: 'request', description: 'the browser-facing fetch request to relay into the API gateway.' }],
+        returns: 'the gateway response after the in-process fetch handler.',
+      },
+      {
+        signature: 'readBundle(id: string): Promise<string>',
+        description: 'JavaScript source of one client bundle by graph id.',
+        parameters: [{ name: 'id', description: 'the client bundle graph id.' }],
+        returns: 'the bundle\'s JavaScript source text.',
+      },
+      {
+        signature: 'mux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>>',
+        description: 'The all-session mux frame stream.',
+        parameters: [{ name: 'signal', description: 'cancels the event stream.' }],
+        returns: 'the mux frame stream as an async iterable.',
+      },
+      {
+        signature: 'host(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>>',
+        description: 'The host-level frame stream.',
+        parameters: [{ name: 'signal', description: 'cancels the event stream.' }],
+        returns: 'the host frame stream as an async iterable.',
+      },
+    ],
+  },
+  {
     key: 'directoryPicker',
     summary: 'Abstract directory-picking service.',
     description: 'Abstract directory-picking service. Subclass, implement `capability()`, and load the subclass as a plugin — it registers as `ctx.directoryPicker` (one implementation per context; loading a second throws, cordis\' standard duplicate-service behavior). The capability object must be stable for the service lifetime: consumers may capture it across calls.',
@@ -3130,6 +3167,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface GoalView extends GoalSnapshot {\n    readonly roundsStarted: number;\n    readonly createdAt: number;\n    readonly updatedAt: number;\n    readonly activation: GoalActivation;\n}',
   },
   {
+    name: 'HostFrame',
+    declaration: 'export type HostFrame = {\n    type: \'host/session-added\';\n    sessionId: SessionId;\n    blank: boolean;\n    parentSessionId?: SessionId;\n    origin?: \'subagent\';\n    cwd?: string;\n    agentPreset?: string;\n} | {\n    type: \'host/session-removed\';\n    sessionId: SessionId;\n} | {\n    type: \'host/session-status\';\n    sessionId: SessionId;\n    running: boolean;\n} | {\n    type: \'host/agent-error\';\n    sessionId: SessionId;\n    message: string;\n} | {\n    type: \'host/workspace-changed\';\n    workspace: WorkspaceView;\n} | {\n    type: \'host/workspace-removed\';\n    workspaceId: WorkspaceView[\'workspaceId\'];\n} | {\n    type: \'host/workspace-order-changed\';\n    workspaceIds: WorkspaceView[\'workspaceId\'][];\n} | {\n    type: \'host/archived-sessions-changed\';\n    archivedSessionIds: SessionId[];\n} | {\n    type: \'host/remote-event\';\n    event: string;\n    args: JsonValue[];\n} | {\n    type: \'stream/error\';\n    error: RpcError;\n};',
+  },
+  {
     name: 'ImageAttachmentLimits',
     declaration: 'export interface ImageAttachmentLimits {\n    maxImageBytes: number;\n    maxImagesPerMessage: number;\n    maxMessageImageBytes: number;\n    maxImagePixels: number;\n    mediaTypes: readonly ImageMediaType[];\n}',
   },
@@ -3224,6 +3265,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'JobStatus',
     declaration: 'export type JobStatus = \'running\' | \'stopping\' | \'completed\' | \'killed\' | \'failed\';',
+  },
+  {
+    name: 'JobView',
+    declaration: 'export interface JobView {\n    id: JobId;\n    kind: string;\n    label: string;\n    status: \'running\' | \'stopping\' | \'completed\' | \'killed\' | \'failed\';\n    detail?: string;\n    startedAt: number;\n    finishedAt?: number;\n}',
   },
   {
     name: 'JsonSchemaNode',
@@ -3466,6 +3511,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ModelModalityMap {\n    text: \'text\';\n    image: \'image\';\n}',
   },
   {
+    name: 'MuxFrame',
+    declaration: 'export type MuxFrame = {\n    type: \'session/event\';\n    sessionId: SessionId;\n    event: SessionEvent;\n    view?: ToolEventView;\n} | {\n    type: \'session/subscribed\';\n    sessionId: SessionId;\n    lastSeq: number;\n} | {\n    type: \'approval/requested\';\n    sessionId: SessionId;\n    approvalId: ApprovalRequestId;\n    toolName: string;\n    callId?: CallId;\n    reason?: string;\n} | {\n    type: \'approval/resolved\';\n    sessionId: SessionId;\n    approvalId: ApprovalRequestId;\n    outcome: ApprovalOutcome;\n} | {\n    type: \'question/requested\';\n    sessionId: SessionId;\n    questions: AskUserQuestionItem[];\n} | {\n    type: \'question/resolved\';\n    sessionId: SessionId;\n    questionRpcId: RpcId;\n    outcome: \'answered\' | \'cancelled\';\n} | {\n    type: \'session/queue\';\n    sessionId: SessionId;\n    items: QueuedInboxItem[];\n} | {\n    type: \'session/jobs\';\n    sessionId: SessionId;\n    jobs: JobView[];\n} | {\n    type: \'session/projection\';\n    sessionId: SessionId;\n    key: string;\n    value: unknown;\n    seq: number;\n} | {\n    type: \'stream/error\';\n    error: RpcError;\n};',
+  },
+  {
     name: 'ObjectJsonSchema',
     declaration: 'export type ObjectJsonSchema = JsonSchemaNode & {\n    type: \'object\';\n};',
   },
@@ -3558,6 +3607,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PruneResult {\n    readonly pruned: readonly PrunedEntry[];\n    readonly charsRemoved: number;\n}',
   },
   {
+    name: 'QueuedInboxItem',
+    declaration: 'export interface QueuedInboxItem {\n    id: MessageId;\n    placement: \'queued\' | \'steering\' | \'context\';\n    message: Message;\n}',
+  },
+  {
     name: 'ReadFileLine',
     declaration: 'export interface ReadFileLine {\n    number: number;\n    text: string;\n}',
   },
@@ -3644,6 +3697,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'RpcReceipt',
     declaration: 'export type RpcReceipt = {\n    accepted: true;\n} | {\n    accepted: false;\n    reason: \'not-pending\' | \'bad-response\';\n};',
+  },
+  {
+    name: 'RpcRequest',
+    declaration: 'export interface RpcRequest<P> {\n    rpcId: RpcId;\n    payload: P;\n}',
   },
   {
     name: 'RpcResult',
@@ -4362,6 +4419,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ToolErrorInfo {\n    name: string;\n    code: string;\n}',
   },
   {
+    name: 'ToolEventView',
+    declaration: 'export type ToolEventView = {\n    for: \'call\';\n    view: ToolCallView;\n} | {\n    for: \'result\';\n    view: ToolResultView;\n};',
+  },
+  {
     name: 'ToolExecution',
     declaration: 'export interface ToolExecution extends ToolExecutionInput {\n    readonly rootCallId: CallId;\n    readonly token: ToolExecutionToken;\n}',
   },
@@ -4644,6 +4705,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkflowStopReason',
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
+  },
+  {
+    name: 'WorkspaceView',
+    declaration: 'export interface WorkspaceView {\n    workspaceId: WorkspaceId;\n    path: string;\n    title: string;\n    sessionIds: SessionId[];\n    createdAt: string;\n    updatedAt: string;\n}',
   },
 ]
 

@@ -4,6 +4,11 @@
   "version": "0.1.0-rc.5",
   "private": true,
   "author": "DeepSeek Harness Desktop",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "apps/desktop"
+  },
   "type": "module",
   "main": "lib/main.js",
   "license": "MIT",

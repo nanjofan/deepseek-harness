@@ -26,15 +26,24 @@ export const inject = ['apiProxy', 'clientModules']
 
 /** The host face the Electron shell wires to IPC. */
 export interface DesktopRuntime {
-  /** Current composed `window.__DSH_BOOT__` entry graph. */
+  /** Current composed `window.__DSH_BOOT__` entry graph.
+   * @returns the composed entry graph passed to the renderer boot. */
   graph(): WebBootGraph
-  /** One in-process API request through the shared gateway fetch handler. */
+  /** One in-process API request through the shared gateway fetch handler.
+   * @param request - the browser-facing fetch request to relay into the API gateway.
+   * @returns the gateway response after the in-process fetch handler. */
   fetch(request: Request): Promise<Response>
-  /** JavaScript source of one client bundle by graph id. */
+  /** JavaScript source of one client bundle by graph id.
+   * @param id - the client bundle graph id.
+   * @returns the bundle's JavaScript source text. */
   readBundle(id: string): Promise<string>
-  /** The all-session mux frame stream. */
+  /** The all-session mux frame stream.
+   * @param signal - cancels the event stream.
+   * @returns the mux frame stream as an async iterable. */
   mux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>>
-  /** The host-level frame stream. */
+  /** The host-level frame stream.
+   * @param signal - cancels the event stream.
+   * @returns the host frame stream as an async iterable. */
   host(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>>
 }
 

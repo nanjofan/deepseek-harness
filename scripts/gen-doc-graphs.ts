@@ -522,6 +522,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Composes the __DSH_BOOT__ entry graph from an incremental dsh.client scan, serves plugin bundles, and notifies rebuilt/graph-changed subscribers.',
   },
   {
+    key: 'desktopRuntime',
+    pkg: 'desktop-app',
+    title: 'Desktop in-process runtime',
+    mode: 'core',
+    consumers: ['connection'],
+    note: 'Electron main-process face over the composed client graph: in-process API fetch, bundle source reads, and the mux/host event streams; the preload bridge drives DesktopApiClient in dsh-client-connection.',
+  },
+  {
     key: 'workflowEngine',
     pkg: 'workflow',
     title: 'Workflow script engine',

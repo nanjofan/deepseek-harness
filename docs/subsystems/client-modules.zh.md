@@ -62,6 +62,8 @@ interface WebBootGraph {
 
 开发环境下，[dsh-client-hmr](../../packages/client/hmr/README.md) 是注册表的监视驱动：它的 Node 半从同步取得的基线出发，对图中每一行的 bundle 做 stat 轮询，变化时调用 `rebuilt(id)`，经 `onGraphChanged` 重新同步监视集合，并通过 SSE（Server-Sent Events）把 rev 变化广播给浏览器半。生产环境的图完全不含 HMR（热模块替换）行；模块宿主自身从不监视文件。
 
+Electron 桌面壳通过 `ctx.desktopRuntime`（`DesktopRuntime`）复用同一张图表：组合图、共享网关之上的进程内 API fetch handler、bundle 源码读取，以及 mux/host 事件流。组合方式见[桌面组合包 README](../../packages/bundle/desktop-app/README.md)。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -114,5 +116,39 @@ onRebuilt(listener: (id: string, rev: string) => void): () => void
 onGraphChanged(listener: () => void): () => void
 ```
 
-Source: [`packages/client/modules/src/index.ts:184`](../../packages/client/modules/src/index.ts)
+Source: [`packages/client/modules/src/index.ts:188`](../../packages/client/modules/src/index.ts)
+
+<a id="ctxdesktopruntime--desktopruntime"></a>
+
+### `ctx.desktopRuntime` — `DesktopRuntime`
+
+The host face the Electron shell wires to IPC.
+
+```ts cordis-catalog
+/** Current composed `window.__DSH_BOOT__` entry graph.
+ * @returns the composed entry graph passed to the renderer boot. */
+graph(): WebBootGraph
+
+/** One in-process API request through the shared gateway fetch handler.
+ * @param request - the browser-facing fetch request to relay into the API gateway.
+ * @returns the gateway response after the in-process fetch handler. */
+fetch(request: Request): Promise<Response>
+
+/** JavaScript source of one client bundle by graph id.
+ * @param id - the client bundle graph id.
+ * @returns the bundle's JavaScript source text. */
+readBundle(id: string): Promise<string>
+
+/** The all-session mux frame stream.
+ * @param signal - cancels the event stream.
+ * @returns the mux frame stream as an async iterable. */
+mux(signal: AbortSignal): AsyncIterable<RpcRequest<MuxFrame>>
+
+/** The host-level frame stream.
+ * @param signal - cancels the event stream.
+ * @returns the host frame stream as an async iterable. */
+host(signal: AbortSignal): AsyncIterable<RpcRequest<HostFrame>>
+```
+
+Source: [`packages/bundle/desktop-app/src/index.ts:28`](../../packages/bundle/desktop-app/src/index.ts)
 <!-- END GENERATED cordis-surface -->

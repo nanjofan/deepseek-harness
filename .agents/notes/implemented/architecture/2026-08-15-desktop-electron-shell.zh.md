@@ -39,6 +39,10 @@ harness 目前以 `dsh web` 浏览器 GUI 和 headless runner 交付，桌面产
 - 前端额外构建一份 `dist-desktop`（相对 Vite base），保证 `file://` 下资源 URL 可解析；`dsh web` 仍用服务端相对路径的 dist。
 - `electron-builder.yml` 目标为 dmg/zip（macOS）、nsis（Windows）、AppImage/deb（Linux），各覆盖 x64 与 arm64。
 
+## Alternatives considered
+
+**Tauri 与 Wails 被否决，改用 Electron。** 两者都需要额外打包 Node sidecar 并自建主进程桥，既重复传输层工作，又放弃 Electron 进程内 Node 的核心优势（见 Decision 一节）。
+
 ## 影响
 
 - 桌面应用不监听任何 HTTP 端口：具有远程执行级别能力的 `/api` 只存在于应用自有的 IPC handler 后面，并拒绝 `/api` 之外的路径。

@@ -24,6 +24,8 @@ win:
         - x64
         - arm64
 linux:
+  executableName: dsh-desktop
+  maintainer: DeepSeek Harness
   category: Development
   target:
     - target: AppImage

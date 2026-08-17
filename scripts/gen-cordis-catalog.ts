@@ -65,6 +65,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   compaction: 'compaction.md',
   cordisInspect: 'extensions.md',
   credentials: 'credentials.md',
+  desktopRuntime: 'client-modules.md',
   directoryPicker: 'workspace.md',
   dynamicCordisRunner: 'extensions.md',
   e2b: 'subprocess.md',
@@ -500,6 +501,8 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
   'Promise',
   'Record',
   'Readonly',
+  'Request',
+  'Response',
   'Uint8Array',
 ])
 
@@ -518,6 +521,9 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   CompactionAgentContext: 'compaction service input is owned by packages/compaction/compaction/src/index.ts',
   ManualCompactAgentContext: 'manual compaction service input is owned by packages/compaction/compaction/src/index.ts',
   ClientResponse: 'wire response message is owned by packages/host/apiproxy/src/api/rpc.ts',
+  HostFrame: 'wire frame contract is owned by packages/host/apiproxy/src/api/events.ts',
+  MuxFrame: 'wire frame contract is owned by packages/host/apiproxy/src/api/events.ts',
+  RpcRequest: 'wire envelope contract is owned by packages/host/apiproxy/src/api/rpc.ts',
   ApprovalRequestId: 'dynamic Plugin approval identity is owned by packages/extensions/cordis-host-runner/src/types.ts',
   CordisErrorDetails: 'Cordis runtime error payload is owned by packages/extensions/cordis-host-runner/src/types.ts',
   CordisInspectPlatform: 'Cordis inspect platform identity is owned by packages/extensions/cordis-host-runner/src/types.ts',

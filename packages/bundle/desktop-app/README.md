@@ -15,7 +15,11 @@ The Electron renderer loads the built [`apps/web`](../../../apps/web/) frontend 
 
 ## Model Experience
 
-None, as the desktop shell serves the existing GUI and adds no model-visible prompt section. Sessions created through the desktop window behave like `dsh web` sessions without a LAN URL.
+None, as the desktop shell serves the existing GUI and adds no model-visible prompt section.
+
+#### KV Cache effect
+
+None; sessions created through the desktop window behave like `dsh web` sessions without a LAN URL.
 
 ## Known Limitations and Deferred Work
 

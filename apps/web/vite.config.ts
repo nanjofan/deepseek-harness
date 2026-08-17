@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 
 const src = (rel: string): string => fileURLToPath(new URL(rel, import.meta.url))
 /** Desktop build variant: relative asset base for file:// loading into a separate dist. */
-const desktopBuild = process.env.DSH_DESKTOP_BUILD === '1'
+const DESKTOP_MODE = 'desktop'
 const STANDALONE_ERROR = 'apps/web is not a standalone application: bare Vite cannot inject window.__DSH_BOOT__. '
   + 'From a repository checkout, run `pnpm dsh web`; an installed package uses `dsh web`. '
   + 'For client-plugin HMR, run `pnpm dsh web` together with `pnpm run dev:web`.'
@@ -91,74 +91,77 @@ function npmPackageOf(id: string): string | undefined {
   return first
 }
 
-export default defineConfig({
-  plugins: [rejectStandaloneServe(), react()],
-  base: desktopBuild ? './' : '/',
-  build: {
-    outDir: desktopBuild ? 'dist-desktop' : 'dist',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        // Output layout: the two main chunks stay at assets/ root; lazy
-        // @shikijs/langs grammar chunks group under assets/langs/; fonts
-        // (all KaTeX faces referenced by vendor.css) group under
-        // assets/fonts/. Sourcemaps need no arrangement: rollup writes each
-        // .map next to its js and references it by bare relative filename.
-        chunkFileNames(chunk): string {
-          // Grammar chunks are recognized by their member modules, not the
-          // facade: shared embedded-grammar chunks (e.g. html+javascript,
-          // split out because php/ruby/mdx embed them) have no facade at all.
-          // index and vendor are excluded by name — vendor legitimately
-          // carries the three boot grammars.
-          if (chunk.name === 'index' || chunk.name === 'vendor') return 'assets/[name]-[hash].js'
-          const isLangChunk = chunk.moduleIds.some(id => id.includes('/node_modules/@shikijs/langs/'))
-          return isLangChunk ? 'assets/langs/[name]-[hash].js' : 'assets/[name]-[hash].js'
-        },
-        assetFileNames(asset): string {
-          const fileName = asset.names[0] ?? ''
-          const isFont = FONT_EXTENSIONS.some(ext => fileName.endsWith(ext))
-          return isFont ? 'assets/fonts/[name]-[hash][extname]' : 'assets/[name]-[hash][extname]'
-        },
-        manualChunks(id: string): string | undefined {
-          const pkg = npmPackageOf(id)
-          if (pkg === undefined) return undefined // workspace + vendored cordis: index
-          if (pkg === '@shikijs/langs') {
-            return BOOT_GRAMMAR_FILES.some(file => id.endsWith(`/${file}`)) ? 'vendor' : undefined
-          }
-          return VENDOR_PACKAGES.has(pkg) ? 'vendor' : undefined
+export default defineConfig(({ mode }) => {
+  const desktopBuild = mode === DESKTOP_MODE
+  return {
+    plugins: [rejectStandaloneServe(), react()],
+    base: desktopBuild ? './' : '/',
+    build: {
+      outDir: desktopBuild ? 'dist-desktop' : 'dist',
+      sourcemap: true,
+      rollupOptions: {
+        output: {
+          // Output layout: the two main chunks stay at assets/ root; lazy
+          // @shikijs/langs grammar chunks group under assets/langs/; fonts
+          // (all KaTeX faces referenced by vendor.css) group under
+          // assets/fonts/. Sourcemaps need no arrangement: rollup writes each
+          // .map next to its js and references it by bare relative filename.
+          chunkFileNames(chunk): string {
+            // Grammar chunks are recognized by their member modules, not the
+            // facade: shared embedded-grammar chunks (e.g. html+javascript,
+            // split out because php/ruby/mdx embed them) have no facade at all.
+            // index and vendor are excluded by name — vendor legitimately
+            // carries the three boot grammars.
+            if (chunk.name === 'index' || chunk.name === 'vendor') return 'assets/[name]-[hash].js'
+            const isLangChunk = chunk.moduleIds.some(id => id.includes('/node_modules/@shikijs/langs/'))
+            return isLangChunk ? 'assets/langs/[name]-[hash].js' : 'assets/[name]-[hash].js'
+          },
+          assetFileNames(asset): string {
+            const fileName = asset.names[0] ?? ''
+            const isFont = FONT_EXTENSIONS.some(ext => fileName.endsWith(ext))
+            return isFont ? 'assets/fonts/[name]-[hash][extname]' : 'assets/[name]-[hash][extname]'
+          },
+          manualChunks(id: string): string | undefined {
+            const pkg = npmPackageOf(id)
+            if (pkg === undefined) return undefined // workspace + vendored cordis: index
+            if (pkg === '@shikijs/langs') {
+              return BOOT_GRAMMAR_FILES.some(file => id.endsWith(`/${file}`)) ? 'vendor' : undefined
+            }
+            return VENDOR_PACKAGES.has(pkg) ? 'vendor' : undefined
+          },
         },
       },
     },
-  },
-  resolve: {
-    // Workspace packages resolve to SOURCE: package.json exports point at lib
-    // for Node/type consumers, but the browser bundle must compile src directly
-    // so CSS rides vite's pipeline instead of the CSS-externalized lib bundle.
-    // Only the shell's normal package entry is aliased — plugin packages are
-    // NEVER bundled here (shell self-sufficiency — see
-    // packages/client/web/README.md); they arrive as runtime
-    // bundles through the client module system. Order matters — subpath
-    // aliases must win over bare-name prefixes.
-    alias: [
-      // Browserization of the vendored cordis Loader: its only node-only
-      // import; the two process probes are mapped by `define` below.
-      { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
-      { find: /^@deepseek-ai\/dsh-client-web$/, replacement: src('../../packages/client/web/src/boot.tsx') },
-      { find: /^@deepseek-ai\/dsh-client-web-react$/, replacement: src('../../packages/client/web-react/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-schema-form$/, replacement: src('../../packages/client/schema-form/src/index.ts') },
-      { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
-    ],
-  },
-  define: {
-    // vendored loader internal.ts: fromInternal() probes the Node major —
-    // "0.0.0" takes neither branch, returning undefined (exactly the empty
-    // internal slot the shell boot fills with the client module loader).
-    'process.versions.node': '"0.0.0"',
-    'process.execArgv': '[]',
-    // vendored loader index.ts: envData falls to its default branch.
-    'process.env.CORDIS_SHARED': 'undefined',
-  },
+    resolve: {
+      // Workspace packages resolve to SOURCE: package.json exports point at lib
+      // for Node/type consumers, but the browser bundle must compile src directly
+      // so CSS rides vite's pipeline instead of the CSS-externalized lib bundle.
+      // Only the shell's normal package entry is aliased — plugin packages are
+      // NEVER bundled here (shell self-sufficiency — see
+      // packages/client/web/README.md); they arrive as runtime
+      // bundles through the client module system. Order matters — subpath
+      // aliases must win over bare-name prefixes.
+      alias: [
+        // Browserization of the vendored cordis Loader: its only node-only
+        // import; the two process probes are mapped by `define` below.
+        { find: /^node:module$/, replacement: src('./src/node-module-stub.ts') },
+        { find: /^@deepseek-ai\/dsh-client-web$/, replacement: src('../../packages/client/web/src/boot.tsx') },
+        { find: /^@deepseek-ai\/dsh-client-web-react$/, replacement: src('../../packages/client/web-react/src/index.ts') },
+        { find: /^@deepseek-ai\/dsh-client-ui-slots$/, replacement: src('../../packages/client/ui-slots/src/index.ts') },
+        { find: /^@deepseek-ai\/dsh-client-ui-primitives$/, replacement: src('../../packages/client/ui-primitives/src/index.ts') },
+        { find: /^@deepseek-ai\/dsh-client-ui-attachment$/, replacement: src('../../packages/client/ui-attachment/src/index.ts') },
+        { find: /^@deepseek-ai\/dsh-client-schema-form$/, replacement: src('../../packages/client/schema-form/src/index.ts') },
+        { find: /^@deepseek-ai\/dsh-client-modules\/client$/, replacement: src('../../packages/client/modules/src/client/index.ts') },
+      ],
+    },
+    define: {
+      // vendored loader internal.ts: fromInternal() probes the Node major —
+      // "0.0.0" takes neither branch, returning undefined (exactly the empty
+      // internal slot the shell boot fills with the client module loader).
+      'process.versions.node': '"0.0.0"',
+      'process.execArgv': '[]',
+      // vendored loader index.ts: envData falls to its default branch.
+      'process.env.CORDIS_SHARED': 'undefined',
+    },
+  }
 })

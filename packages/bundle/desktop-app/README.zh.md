@@ -15,7 +15,11 @@ Electron 渲染层通过 `file://` 加载已构建的 [`apps/web`](../../../apps
 
 ## Model Experience
 
-无，桌面壳只是承载现有 GUI，不新增模型可见的提示段。通过桌面窗口创建的会话与 `dsh web` 会话行为一致，只是没有局域网 URL。
+无，桌面壳只是承载现有 GUI，不新增模型可见的提示段。
+
+#### KV Cache effect
+
+无；通过桌面窗口创建的会话与 `dsh web` 会话行为一致，只是没有局域网 URL。
 
 ## Known Limitations and Deferred Work
 

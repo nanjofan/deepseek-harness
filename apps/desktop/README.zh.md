@@ -20,8 +20,8 @@ preload 桥（[`src/preload.ts`](src/preload.ts)）把启动图和 `window.dshDe
 前置要求：Node ^22.19 || >=24、pnpm，以及已构建的 workspace（先 `pnpm install` 再 `pnpm run build`）。
 
 ```sh
-pnpm run build:desktop   # 构建桌面 dist 与主进程/preload
-pnpm run desktop         # 构建并从仓库目录启动 Electron
+pnpm run build:desktop   # desktop dist + main/preload build
+pnpm run desktop         # build and launch Electron from the checkout
 ```
 
 首次启动会在 `~/.dsh/profiles/desktop` 初始化 profile，与 `web`、`headless` 一致。
