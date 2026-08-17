@@ -1,6 +1,12 @@
 appId: ai.deepseek.harness.desktop
 productName: DeepSeek Harness
-asar: true
+# asar must stay off: the profile module fallback symlinks installation
+# packages into $DSH_HOME/profiles/node_modules, and Node's ESM resolver stats
+# those links with the raw syscall, which cannot see inside an asar archive
+# (Electron only patches paths that already contain a .asar segment). With
+# asar on, every bare-specifier loader entry fails to resolve from the profile
+# directory -> "Cannot find package" AggregateError at boot.
+asar: false
 directories:
   output: release
 files:

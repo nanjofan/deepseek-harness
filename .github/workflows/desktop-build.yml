@@ -1,3 +1,7 @@
+# Build desktop installers for macOS, Windows, and Linux (x64 + arm64) on
+# every master push and on demand. Produces unsigned artifacts for manual
+# smoke-testing; signing, notarization, and release distribution belong to
+# the release sequence.
 name: desktop-build
 
 on:
@@ -5,6 +9,17 @@ on:
   push:
     branches:
       - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
 
 jobs:
   build:
@@ -14,27 +29,69 @@ jobs:
         include:
           - os: macos-latest
             platform: mac
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: linux
           - os: windows-latest
             platform: win
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
         with:
-          version: 11.7.0
+          persist-credentials: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 22
-          cache: pnpm
+          dest: ${{ runner.temp }}/setup-pnpm
 
-      - name: Install dependencies
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+      # Master refreshes the pnpm store cache that the enterprise pull-request
+      # jobs restore without saving. Hand-rolled rather than setup-node's
+      # `cache: pnpm`: those jobs restore exactly this key and path, and
+      # setup-node's built-in cache uses its own key format — converting this
+      # producer would silently starve their restore-only optimization.
+      - name: Configure pnpm store path
+        id: pnpm-store
+        run: |
+          store_root="$HOME/.local/share/pnpm/store"
+          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
+          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
+
+      # Electron and electron-builder tool binaries (winCodeSign, nsis,
+      # appimage) download per architecture on every build; caching them keeps
+      # the packaging step off the flaky download path. Keyed on the desktop
+      # manifest plus the lockfile, which together pin the electron version.
+      - name: Resolve Electron cache directories
+        id: electron-cache
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            macOS) electron_dir="$HOME/Library/Caches/electron"; builder_dir="$HOME/Library/Caches/electron-builder" ;;
+            Linux) electron_dir="$HOME/.cache/electron"; builder_dir="$HOME/.cache/electron-builder" ;;
+            *)     electron_dir="$LOCALAPPDATA/electron/Cache"; builder_dir="$LOCALAPPDATA/electron-builder/Cache" ;;
+          esac
+          echo "electron=$electron_dir" >> "$GITHUB_OUTPUT"
+          echo "builder=$builder_dir" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.electron-cache.outputs.electron }}
+            ${{ steps.electron-cache.outputs.builder }}
+          key: ${{ runner.os }}-electron-${{ hashFiles('apps/desktop/package.json', 'pnpm-lock.yaml') }}
+
+      - name: Install (immutable)
         run: pnpm install --frozen-lockfile
 
       - name: Build libraries
@@ -43,20 +100,27 @@ jobs:
       - name: Build desktop app
         run: pnpm run build:desktop
 
+      # ubuntu-24.04 ships no libfuse2; the AppImage tooling needs it even for
+      # cross-building the arm64 target. fakeroot covers the deb path's
+      # permission emulation on the hosted runner.
+      - name: Install Linux packaging prerequisites
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfuse2t64 fakeroot
+
       - name: Package installers
         working-directory: apps/desktop
         env:
-          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
-          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder --${{ matrix.platform }} --x64 --arm64 --publish never
+        run: pnpm exec electron-builder --${{ matrix.platform }} --x64 --arm64 --publish never
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-${{ matrix.platform }}
           path: |
@@ -66,3 +130,4 @@ jobs:
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
           if-no-files-found: error
+          retention-days: 14

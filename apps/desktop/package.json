@@ -51,7 +51,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
-    "electron": "^37.2.0",
+    "electron": "^37.10.3",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.0",
     "typescript": "^6.0.3"

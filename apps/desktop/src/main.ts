@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { inspect } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import type { HostFrame, MuxFrame, RpcError, RpcRequest, ServerRequest } from '@deepseek-ai/dsh-host-apiproxy/api'
@@ -209,8 +210,11 @@ void app.whenReady().then(async () => {
     console.log('[desktop] creating window')
     createWindow()
   } catch (error) {
-    console.error('[desktop] failed to start:', error)
-    dialog.showErrorBox('DeepSeek Harness failed to start', error instanceof Error ? error.stack ?? error.message : String(error))
+    // Expand nested causes (boot wraps AggregateError) so the real failing
+    // entries are visible in the dialog and stderr.
+    const detail = inspect(error, { depth: null, colors: false, maxArrayLength: 50 })
+    console.error('[desktop] failed to start:', detail)
+    dialog.showErrorBox('DeepSeek Harness failed to start', detail)
     app.exit(1)
   }
 })
